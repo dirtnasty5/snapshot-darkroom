@@ -1,0 +1,1157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SnapShot Darkroom</title>
+<meta name="description" content="Develop your SnapShot screenshots into polaroid prints. Crop, caption, doodle and download. Everything stays on your computer.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Permanent+Marker&family=Special+Elite&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#121010; --panel:#1b1716; --panel2:#231e1c; --line:#3a302c;
+  --text:#ece3d6; --muted:#a8998a; --safe:#d0482f; --safe2:#ff6a4a;
+  --cream:#f3ecdc; --ok:#7bc47f; --warn:#e8b04a;
+  --r:10px;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  background-image:radial-gradient(ellipse at 50% -20%,rgba(208,72,47,.18),transparent 60%)}
+button,select,input,textarea{font:inherit;color:inherit}
+header{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line)}
+.logo{font-family:"Special Elite",monospace;font-size:22px;letter-spacing:.5px;display:flex;align-items:center;gap:10px}
+.logo .bulb{width:12px;height:12px;border-radius:50%;background:var(--safe2);box-shadow:0 0 12px 3px rgba(255,106,74,.6)}
+.logo small{font-family:system-ui;font-size:12px;color:var(--muted);margin-left:4px}
+header .sp{flex:1}
+.btn{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:#5a4a43}
+.btn.primary{background:var(--safe);border-color:var(--safe)}
+.btn.primary:hover{background:var(--safe2)}
+.btn.sm{padding:4px 9px;font-size:13px}
+.btn:disabled{opacity:.45;cursor:default}
+.app{display:grid;grid-template-columns:190px 1fr 300px;height:calc(100% - 59px)}
+@media (max-width:980px){
+  .app{grid-template-columns:1fr;height:auto}.queue{order:2;border-right:0;border-top:1px solid var(--line)}.panel{order:3;border-left:0}
+  header{flex-wrap:wrap;padding:10px 16px}header .sp{flex-basis:100%;height:0}.logo small{display:none}
+  .stage{padding:16px;min-height:300px}.drop{padding:26px 16px}
+  #qList{display:flex;gap:8px;overflow-x:auto}.qi{flex:0 0 120px;width:120px;min-width:0}
+}
+.queue{border-right:1px solid var(--line);overflow:auto;padding:10px}
+.queue h3,.panel h3{font-size:11px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin:6px 2px 8px;font-weight:600}
+.qi{position:relative;border:1px solid transparent;border-radius:8px;padding:6px;margin-bottom:8px;cursor:pointer;background:var(--panel)}
+.qi.on{border-color:var(--safe)}
+.qi canvas{display:block;width:100%;height:auto;border-radius:3px;background:#000}
+.qi .nm{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:4px}
+.qi .x{position:absolute;top:2px;right:4px;border:0;background:rgba(0,0,0,.6);border-radius:50%;width:20px;height:20px;line-height:18px;cursor:pointer;font-size:13px;padding:0}
+.qi .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:1px}
+.stage{position:relative;display:flex;align-items:center;justify-content:center;padding:18px;overflow:auto;min-height:420px}
+#cv{max-width:100%;max-height:calc(100vh - 130px);box-shadow:0 18px 50px rgba(0,0,0,.6);touch-action:none;display:none}
+.drop{border:2px dashed #4a3c36;border-radius:16px;padding:40px 30px;text-align:center;max-width:520px;color:var(--muted)}
+.drop h2{font-family:"Special Elite",monospace;color:var(--text);font-weight:400;margin:6px 0 10px}
+.drop.hot,.stage.hot{outline:2px dashed var(--safe2);outline-offset:-10px}
+.banner{position:absolute;top:10px;left:50%;transform:translateX(-50%);background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:5px 14px;font-size:13px;display:none;z-index:2}
+.panel{border-left:1px solid var(--line);overflow:auto;padding:10px 14px 30px}
+.sec{border-bottom:1px solid var(--line);padding:4px 0 12px;margin-bottom:8px}
+.row{display:flex;gap:8px;align-items:center;margin:6px 0;flex-wrap:wrap}
+.row label{color:var(--muted);font-size:12px;min-width:58px}
+input[type=text],textarea,select{background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:6px 8px;width:100%}
+textarea{resize:vertical;min-height:54px}
+input[type=range]{flex:1;accent-color:var(--safe2)}
+.chips{display:flex;gap:5px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:var(--panel2);border-radius:16px;padding:3px 10px;cursor:pointer;font-size:12.5px}
+.chip.on{border-color:var(--safe2);background:#3a211b}
+.sw{width:22px;height:22px;border-radius:50%;border:2px solid #000;cursor:pointer;outline:1px solid #555}
+.sw.on{outline:2px solid #fff}
+.tools{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.tool{border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:7px 2px;cursor:pointer;text-align:center;font-size:12px}
+.tool b{display:block;font-size:17px;font-weight:400;line-height:1.2}
+.tool.on{border-color:var(--safe2);background:#3a211b}
+.stk{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-top:6px}
+.stk button{border:1px solid var(--line);background:var(--panel2);border-radius:7px;padding:3px;cursor:pointer;height:34px}
+.stk button.on{border-color:var(--safe2)}
+.stk canvas{width:24px;height:24px}
+.status{font-size:12.5px;padding:7px 9px;border-radius:7px;background:var(--panel2);border-left:3px solid var(--muted)}
+.status.ok{border-color:var(--ok)}.status.warn{border-color:var(--warn)}
+.muted{color:var(--muted);font-size:12px}
+.hide{display:none!important}
+dialog{background:var(--panel);color:var(--text);border:1px solid var(--line);border-radius:14px;max-width:620px;padding:22px 26px}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+dialog h2{font-family:"Special Elite",monospace;font-weight:400;margin-top:0}
+dialog li{margin:5px 0}
+kbd{background:var(--panel2);border:1px solid var(--line);border-radius:4px;padding:0 5px;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><span class="bulb"></span>SnapShot Darkroom<small>develop your polaroids</small></div>
+  <div class="sp"></div>
+  <button class="btn primary" id="addBtn">Add screenshots</button>
+  <button class="btn" id="sampleBtn">Try a sample</button>
+  <button class="btn" id="helpBtn">How it works</button>
+  <input type="file" id="fileIn" accept="image/*" multiple hidden>
+</header>
+
+<div class="app">
+  <aside class="queue">
+    <h3>Negatives</h3>
+    <div id="qList"></div>
+    <p class="muted" id="qEmpty">Your photos will line up here.</p>
+  </aside>
+
+  <main class="stage" id="stage">
+    <div class="banner" id="banner"></div>
+    <div class="drop" id="drop">
+      <div style="font-size:42px">📸</div>
+      <h2>Drop your screenshots here</h2>
+      <p>Find them in your <b>World of Warcraft</b> folder, in <b>_classic_…_\Screenshots</b>. Drop in as many as you like, or paste one with <kbd>Ctrl</kbd>+<kbd>V</kbd>.</p>
+      <p>SnapShot's crop marks are found automatically, so each one becomes a fresh polaroid you can write on.</p>
+      <p class="muted">Your photos never leave your computer.</p>
+      <button class="btn primary" id="addBtn2">Choose screenshots</button>
+    </div>
+    <canvas id="cv"></canvas>
+  </main>
+
+  <aside class="panel" id="panel">
+    <div id="noPhoto" class="muted" style="padding:8px 2px">Add a screenshot to start developing.</div>
+    <div id="pEdit" class="hide">
+      <div class="sec">
+        <h3>Print</h3>
+        <div class="status" id="detStatus"></div>
+        <div class="row"><label>Shape</label><span id="fmtLabel" style="font-weight:600"></span></div>
+        <div class="row">
+          <button class="btn sm" id="cropBtn">Adjust crop</button>
+          <button class="btn sm" id="redetBtn">Find marks again</button>
+        </div>
+        <div class="row"><label>Card</label><div class="chips" id="cardChips"></div></div>
+      </div>
+
+      <div class="sec" id="cropSec" style="display:none">
+        <h3>Crop</h3>
+        <div class="row"><label>Shape</label><div class="chips" id="aspChips"></div></div>
+        <p class="muted">Drag the box to move it, drag a corner to resize.</p>
+        <button class="btn primary sm" id="cropDone">Done</button>
+      </div>
+
+      <div id="editSecs">
+        <div class="sec">
+          <h3>Caption</h3>
+          <input type="text" id="capIn" placeholder="Write on the card…" maxlength="80">
+          <div class="row"><label>Pen</label><div class="chips" id="capFonts"></div></div>
+          <div class="row"><label>Ink</label><div class="chips" id="capInks"></div></div>
+        </div>
+
+        <div class="sec">
+          <h3>Date stamp</h3>
+          <div class="row"><label><input type="checkbox" id="stOn"> Show</label></div>
+          <input type="text" id="stIn" placeholder="e.g. 26 11 '26  or  Westfall 52, 31" maxlength="40">
+        </div>
+
+        <div class="sec">
+          <h3>Draw &amp; decorate</h3>
+          <div class="tools" id="tools"></div>
+          <div id="toolOpts"></div>
+          <div class="row" style="margin-top:8px">
+            <button class="btn sm" id="undoBtn" title="Ctrl+Z">↶ Undo</button>
+            <button class="btn sm" id="redoBtn" title="Ctrl+Y">↷ Redo</button>
+            <button class="btn sm" id="clearBtn">Clear doodles</button>
+          </div>
+        </div>
+
+        <div class="sec" id="selSec" style="display:none">
+          <h3>Selected</h3>
+          <div id="selText"><textarea id="selTxt" placeholder="Type here…"></textarea></div>
+          <div class="row" id="selFontRow"><label>Pen</label><div class="chips" id="selFonts"></div></div>
+          <div class="row"><label>Colour</label><div class="chips" id="selInks"></div></div>
+          <div class="row"><label>Size</label><input type="range" id="selSize" min="0.02" max="0.6" step="0.005"></div>
+          <div class="row"><label>Tilt</label><input type="range" id="selRot" min="-30" max="30" step="1"></div>
+          <div class="row">
+            <button class="btn sm" id="selFront">Bring to front</button>
+            <button class="btn sm" id="selDel">Delete</button>
+          </div>
+        </div>
+
+        <div class="sec">
+          <h3>Download</h3>
+          <div class="row"><label>Size</label>
+            <select id="expSize">
+              <option value="0">Full size</option>
+              <option value="2048">2048 px wide</option>
+              <option value="1600" selected>1600 px (Discord)</option>
+              <option value="1080">1080 px</option>
+            </select></div>
+          <div class="row"><label>Type</label>
+            <select id="expType"><option value="png">PNG (best)</option><option value="jpeg">JPEG (smaller)</option></select></div>
+          <div class="row">
+            <button class="btn primary" id="dlBtn">Download print</button>
+            <button class="btn" id="dlAllBtn">Download all</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>
+
+<dialog id="help">
+  <h2>How the darkroom works</h2>
+  <ol>
+    <li>In game, take photos with <b>SnapShot</b> as usual. With <i>Darkroom crop marks</i> on, SnapShot draws four small pink corner marks around your photo.</li>
+    <li>Drop the screenshots here. The darkroom finds the marks and cuts out just your photo. The old frame, caption and any UI are left behind.</li>
+    <li>Your photo gets a brand new polaroid card. Type a caption (fix that typo!), add text, marker doodles, stickers or tape over anything you want hidden.</li>
+    <li>Download your print. PNG keeps it sharp; the Discord size is easy to share.</li>
+  </ol>
+  <p><b>No marks?</b> Older screenshots or full-screen shots work too: click <b>Adjust crop</b> and drag the box yourself.</p>
+  <p><b>Shortcuts:</b> <kbd>Ctrl</kbd>+<kbd>Z</kbd> undo, <kbd>Ctrl</kbd>+<kbd>Y</kbd> redo, <kbd>Delete</kbd> removes the selected item, <kbd>Ctrl</kbd>+<kbd>V</kbd> pastes a screenshot.</p>
+  <p class="muted">Everything happens in your browser. Nothing is uploaded anywhere. Your edits are remembered on this computer if you drop the same screenshot in again.</p>
+  <form method="dialog" style="text-align:right"><button class="btn primary">Got it</button></form>
+</dialog>
+
+<script>
+"use strict";
+/* ===========================================================================
+   SnapShot Darkroom
+   The addon draws four magenta L marks just outside the photo at capture time.
+   This page finds them, crops the photo, and builds a fresh polaroid around it.
+   See README.md for the exact mark spec the addon draws.
+   =========================================================================== */
+
+// ---- constants ------------------------------------------------------------
+const FONTS = [
+  { id: "Caveat", label: "Handwriting", w: 700 },
+  { id: "Permanent Marker", label: "Marker", w: 400 },
+  { id: "Special Elite", label: "Typewriter", w: 400 },
+  { id: "Share Tech Mono", label: "Stamp", w: 400 },
+];
+const INKS = ["#1f2340", "#1b1b1b", "#c0392b", "#1565c0", "#2e7d32", "#e67e22", "#8e44ad", "#ff4fa3", "#f1c40f", "#ffffff"];
+const CARDS = [
+  { id: "cream", label: "Cream", c: "#f3ecdc" },
+  { id: "white", label: "White", c: "#fbfaf6" },
+  { id: "black", label: "Black", c: "#1e1c1b" },
+];
+const ASPECTS = [
+  { id: "free", label: "Free", r: 0 },
+  { id: "1:1", label: "1:1 Square", r: 1 },
+  { id: "16:9", label: "16:9 Landscape", r: 16 / 9 },
+  { id: "9:16", label: "9:16 Portrait", r: 9 / 16 },
+];
+const STICKERS = ["heart", "star", "sparkle", "arrow", "cross", "ring", "badge"];
+const TOOLS = [
+  { id: "select", icon: "↖", label: "Move" },
+  { id: "pen", icon: "✎", label: "Marker" },
+  { id: "text", icon: "T", label: "Text" },
+  { id: "sticker", icon: "★", label: "Sticker" },
+  { id: "tape", icon: "▭", label: "Tape" },
+];
+const TAPES = [
+  { c: "#f7f4ea", label: "White" },
+  { c: "#1b1b1b", label: "Black" },
+  { c: "#f4d35e", label: "Yellow" },
+  { c: "#9ad1d4", label: "Mint" },
+  { c: "#f2a7c3", label: "Pink" },
+];
+const PEN_W = [{ v: 0.008, l: "Fine" }, { v: 0.016, l: "Medium" }, { v: 0.03, l: "Thick" }];
+const PREVIEW_MAX = 1800; // longest side of the on-screen canvas, in px
+
+// ---- state ----------------------------------------------------------------
+const S = {
+  photos: [], cur: -1, mode: "edit", tool: "select", sel: null,
+  pen: { w: 0.016, c: "#c0392b" }, sticker: "heart", stkColor: "#c0392b", tape: "#f7f4ea",
+  drag: null, ps: 1,
+};
+let uid = 0;
+const $ = (id) => document.getElementById(id);
+const cv = $("cv"), cx = cv.getContext("2d");
+
+function cur() { return S.photos[S.cur] || null; }
+function mk(w, h) { const c = document.createElement("canvas"); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; }
+function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+function fontStr(f, size) { const d = FONTS.find((x) => x.id === f) || FONTS[0]; return `${d.w} ${size}px "${d.id}"`; }
+function banner(msg, ms = 2600) {
+  const b = $("banner"); b.textContent = msg; b.style.display = "block";
+  clearTimeout(banner.t); banner.t = setTimeout(() => (b.style.display = "none"), ms);
+}
+function store(get, key, val) {
+  try { if (get) return JSON.parse(localStorage.getItem(key) || "null"); localStorage.setItem(key, JSON.stringify(val)); }
+  catch (e) { return null; }
+}
+
+// ===========================================================================
+// Crop-mark detection
+// ===========================================================================
+// Pure magenta (#FF00FF): red and blue both high and nearly equal, green low.
+// Hot pinks and purples from spell effects have red and blue far apart.
+function isMag(r, g, b) {
+  const lo = Math.min(r, b);
+  return lo > 120 && g < 0.45 * lo && Math.abs(r - b) < 0.22 * lo + 12;
+}
+
+function findComponents(img) {
+  const iw = img.naturalWidth, ih = img.naturalHeight;
+  const s = Math.max(1, Math.ceil(Math.max(iw, ih) / 1400));
+  const w = Math.ceil(iw / s), h = Math.ceil(ih / s);
+  const c = mk(w, h), x = c.getContext("2d", { willReadFrequently: true });
+  x.imageSmoothingQuality = "high";
+  x.drawImage(img, 0, 0, w, h);
+  const d = x.getImageData(0, 0, w, h).data;
+  const n = w * h, mask = new Uint8Array(n);
+  for (let i = 0, p = 0; i < n; i++, p += 4) if (isMag(d[p], d[p + 1], d[p + 2])) mask[i] = 1;
+  const lab = new Int32Array(n), stack = new Int32Array(n), comps = [];
+  let nextLab = 0;
+  for (let i = 0; i < n; i++) {
+    if (!mask[i] || lab[i]) continue;
+    const L = ++nextLab;
+    let sp = 0, cnt = 0, x0 = w, y0 = h, x1 = 0, y1 = 0;
+    stack[sp++] = i; lab[i] = L;
+    while (sp) {
+      const k = stack[--sp], kx = k % w, ky = (k - kx) / w;
+      cnt++;
+      if (kx < x0) x0 = kx; if (kx > x1) x1 = kx; if (ky < y0) y0 = ky; if (ky > y1) y1 = ky;
+      if (kx > 0 && mask[k - 1] && !lab[k - 1]) { lab[k - 1] = L; stack[sp++] = k - 1; }
+      if (kx < w - 1 && mask[k + 1] && !lab[k + 1]) { lab[k + 1] = L; stack[sp++] = k + 1; }
+      if (ky > 0 && mask[k - w] && !lab[k - w]) { lab[k - w] = L; stack[sp++] = k - w; }
+      if (ky < h - 1 && mask[k + w] && !lab[k + w]) { lab[k + w] = L; stack[sp++] = k + w; }
+    }
+    const bw = x1 - x0 + 1, bh = y1 - y0 + 1, ar = bw / bh;
+    if (cnt < 6 || bw < 4 || bh < 4 || ar < 0.5 || ar > 2 || cnt > n * 0.01) continue;
+    const role = lShape(lab, L, w, x0, y0, bw, bh);
+    if (role) comps.push({ n: cnt, x0, y0, x1, y1, bw, bh, role, cx: x0 + bw / 2, cy: y0 + bh / 2 });
+  }
+  return { comps, s, w, h };
+}
+
+// Is this blob a corner bracket? Returns which corner its arms meet at
+// (TL/TR/BL/BR), which is also the photo corner it marks, or null.
+function lShape(lab, L, w, x0, y0, bw, bh) {
+  const box = (fx0, fy0, fx1, fy1) => {
+    const ax = x0 + Math.floor(bw * fx0), bx = x0 + Math.max(Math.floor(bw * fx0) + 1, Math.ceil(bw * fx1));
+    const ay = y0 + Math.floor(bh * fy0), by = y0 + Math.max(Math.floor(bh * fy0) + 1, Math.ceil(bh * fy1));
+    let c = 0, t = 0;
+    for (let y = ay; y < by; y++) for (let x = ax; x < bx; x++) { t++; if (lab[y * w + x] === L) c++; }
+    return t ? c / t : 0;
+  };
+  const q = 0.3;
+  const d = { TL: box(0, 0, q, q), TR: box(1 - q, 0, 1, q), BL: box(0, 1 - q, q, 1), BR: box(1 - q, 1 - q, 1, 1) };
+  const opp = { TL: "BR", TR: "BL", BL: "TR", BR: "TL" };
+  let j = null;
+  for (const k in d) if (!j || d[k] > d[j]) j = k;
+  if (d[j] < 0.35 || d[opp[j]] > 0.08) return null;
+  // the far half of the bracket should be mostly empty, and the two arms thin
+  const T = j[0] === "T", Lf = j[1] === "L";
+  const inner = box(Lf ? 0.4 : 0, T ? 0.4 : 0, Lf ? 1 : 0.6, T ? 1 : 0.6);
+  if (inner > 0.1) return null;
+  const armH = box(Lf ? 0.4 : 0, T ? 0 : 0.85, Lf ? 1 : 0.6, T ? 0.15 : 1);
+  const armV = box(Lf ? 0 : 0.85, T ? 0.4 : 0, Lf ? 0.15 : 1, T ? 1 : 0.6);
+  if (armH < 0.3 || armV < 0.3) return null;
+  return j;
+}
+
+// Score a choice of one bracket per corner (3 or 4 corners). Lower is better.
+// Each bracket's arms meet at the photo corner, so we compare those points.
+function arrange(roles, W, H) {
+  const pt = (k) => { const c = roles[k]; if (!c) return null; return [k[1] === "L" ? c.x1 + 1 : c.x0, k[0] === "T" ? c.y1 + 1 : c.y0]; };
+  const P = { TL: pt("TL"), TR: pt("TR"), BL: pt("BL"), BR: pt("BR") };
+  const set = Object.values(roles), sz = set.map((c) => Math.max(c.bw, c.bh));
+  if (Math.max(...sz) / Math.min(...sz) > 2) return null;
+  const mean = sz.reduce((a, b) => a + b, 0) / sz.length, tol = Math.max(3, mean * 0.5);
+  let score = 0;
+  // left/right brackets share an x, top/bottom brackets share a y
+  for (const [a, b, i] of [["TL", "BL", 0], ["TR", "BR", 0], ["TL", "TR", 1], ["BL", "BR", 1]]) {
+    if (P[a] && P[b]) { const dv = Math.abs(P[a][i] - P[b][i]); if (dv > tol) return null; score += dv; }
+  }
+  const left = (P.TL || P.BL)[0], right = (P.TR || P.BR)[0], top = (P.TL || P.TR)[1], bottom = (P.BL || P.BR)[1];
+  if (right - left < Math.max(W * 0.05, mean * 2) || bottom - top < Math.max(H * 0.05, mean * 2)) return null;
+  // brackets are drawn at ~4% of the photo's short side
+  const ratio = mean / Math.min(right - left, bottom - top);
+  if (ratio < 0.01 || ratio > 0.3) return null;
+  return { score: score / mean + (4 - set.length) * 3, roles };
+}
+
+// Find the inner corner of one mark at full resolution.
+function refine(img, comp, s, role) {
+  const pad = s * 2 + 2;
+  const rx = Math.max(0, comp.x0 * s - pad), ry = Math.max(0, comp.y0 * s - pad);
+  const rw = Math.min(img.naturalWidth - rx, (comp.x1 - comp.x0 + 1) * s + pad * 2);
+  const rh = Math.min(img.naturalHeight - ry, (comp.y1 - comp.y0 + 1) * s + pad * 2);
+  const c = mk(rw, rh), x = c.getContext("2d", { willReadFrequently: true });
+  x.drawImage(img, rx, ry, rw, rh, 0, 0, rw, rh);
+  const d = x.getImageData(0, 0, rw, rh).data;
+  // keep only the bracket itself: the pink blob that fills the corner where its
+  // arms meet (the hollow of the bracket lies over the photo, which may be pink too)
+  // Score = pixels inside the bracket's expected footprint (its junction corner),
+  // minus pixels outside the footprint found at low resolution.
+  const L = role[1] === "L", T = role[0] === "T";
+  const fx0 = comp.x0 * s - s - rx, fx1 = (comp.x1 + 1) * s + s - rx, fy0 = comp.y0 * s - s - ry, fy1 = (comp.y1 + 1) * s + s - ry;
+  const jx0 = L ? fx0 : fx0 + (fx1 - fx0) * 0.6, jx1 = L ? fx0 + (fx1 - fx0) * 0.4 : fx1;
+  const jy0 = T ? fy0 : fy0 + (fy1 - fy0) * 0.6, jy1 = T ? fy0 + (fy1 - fy0) * 0.4 : fy1;
+  const raw = new Uint8Array(rw * rh);
+  for (let i = 0; i < raw.length; i++) if (isMag(d[i * 4], d[i * 4 + 1], d[i * 4 + 2])) raw[i] = 1;
+  const lab = new Int32Array(raw.length), st = new Int32Array(raw.length);
+  let bestL = 0, bestN = 0, nl = 0;
+  for (let i = 0; i < raw.length; i++) {
+    if (!raw[i] || lab[i]) continue;
+    const L0 = ++nl; let sp = 0, cnt = 0; st[sp++] = i; lab[i] = L0;
+    while (sp) {
+      const k = st[--sp], kx = k % rw, ky = (k - kx) / rw;
+      if (kx < fx0 || kx >= fx1 || ky < fy0 || ky >= fy1) cnt -= 3;
+      else if (kx >= jx0 && kx < jx1 && ky >= jy0 && ky < jy1) cnt++;
+      if (kx > 0 && raw[k - 1] && !lab[k - 1]) { lab[k - 1] = L0; st[sp++] = k - 1; }
+      if (kx < rw - 1 && raw[k + 1] && !lab[k + 1]) { lab[k + 1] = L0; st[sp++] = k + 1; }
+      if (k >= rw && raw[k - rw] && !lab[k - rw]) { lab[k - rw] = L0; st[sp++] = k - rw; }
+      if (k + rw < raw.length && raw[k + rw] && !lab[k + rw]) { lab[k + rw] = L0; st[sp++] = k + rw; }
+    }
+    if (cnt > bestN) { bestN = cnt; bestL = L0; }
+  }
+  const m = (px, py) => lab[py * rw + px] === bestL;
+  let lx0 = rw, ly0 = rh, lx1 = -1, ly1 = -1;
+  for (let py = 0; py < rh; py++) for (let px = 0; px < rw; px++) if (m(px, py)) {
+    if (px < lx0) lx0 = px; if (px > lx1) lx1 = px; if (py < ly0) ly0 = py; if (py > ly1) ly1 = py;
+  }
+  if (lx1 < 0) return null;
+  const bw = lx1 - lx0 + 1, bh = ly1 - ly0 + 1;
+  const median = (a) => { if (!a.length) return null; a.sort((p, q) => p - q); return a[a.length >> 1]; };
+  // rows crossed by the vertical arm only
+  const r0 = T ? Math.floor(ly0 + bh * 0.6) : ly0, r1 = T ? ly1 : Math.ceil(ly0 + bh * 0.4);
+  const xe = [];
+  for (let py = r0; py <= r1; py++) {
+    let e = null;
+    for (let px = lx0; px <= lx1; px++) if (m(px, py)) { if (L) e = px; else if (e === null) e = px; }
+    if (e !== null) xe.push(e);
+  }
+  // columns crossed by the horizontal arm only
+  const c0 = L ? Math.floor(lx0 + bw * 0.6) : lx0, c1 = L ? lx1 : Math.ceil(lx0 + bw * 0.4);
+  const ye = [];
+  for (let px = c0; px <= c1; px++) {
+    let e = null;
+    for (let py = ly0; py <= ly1; py++) if (m(px, py)) { if (T) e = py; else if (e === null) e = py; }
+    if (e !== null) ye.push(e);
+  }
+  const ix = median(xe), iy = median(ye);
+  if (ix === null || iy === null) return null;
+  return { x: rx + (L ? ix + 1 : ix), y: ry + (T ? iy + 1 : iy) };
+}
+
+function detectCrop(img) {
+  const { comps, s, w, h } = findComponents(img);
+  const by = { TL: [], TR: [], BL: [], BR: [] };
+  for (const c of comps) by[c.role].push(c);
+  for (const k in by) { by[k].sort((a, b) => b.n - a.n); by[k] = by[k].slice(0, 6); }
+  let best = null, used = 0;
+  const opts = (k) => [...by[k], null];
+  for (const tl of opts("TL")) for (const tr of opts("TR")) for (const bl of opts("BL")) for (const br of opts("BR")) {
+    const roles = {}; if (tl) roles.TL = tl; if (tr) roles.TR = tr; if (bl) roles.BL = bl; if (br) roles.BR = br;
+    const cnt = Object.keys(roles).length; if (cnt < 3) continue;
+    const a = arrange(roles, w, h);
+    if (a && (!best || a.score < best.score)) { best = a; used = cnt; }
+  }
+  if (!best) return null;
+  const pts = {};
+  for (const role in best.roles) {
+    const c = best.roles[role], p = refine(img, c, s, role);
+    // sanity check against the low-resolution corner (within a couple of pixels of it)
+    const ex = (role[1] === "L" ? c.x0 : c.x1 + 1) * s, ey = (role[0] === "T" ? c.y0 : c.y1 + 1) * s;
+    const armT = Math.min(c.bw, c.bh) * s;
+    if (p && Math.abs(p.x - ex) < armT * 0.5 && Math.abs(p.y - ey) < armT * 0.5) pts[role] = p;
+  }
+  // a corner that disagrees with its neighbours is dropped; 3 good corners are enough
+  for (const [a, b, k] of [["TL", "BL", "x"], ["TR", "BR", "x"], ["TL", "TR", "y"], ["BL", "BR", "y"]]) {
+    if (pts[a] && pts[b] && Math.abs(pts[a][k] - pts[b][k]) > Math.max(3, s * 2)) {
+      const lowA = best.roles[a], lowB = best.roles[b];
+      const errA = Math.abs(pts[a][k] - (k === "x" ? (a[1] === "L" ? lowA.x0 : lowA.x1 + 1) : (a[0] === "T" ? lowA.y0 : lowA.y1 + 1)) * s);
+      const errB = Math.abs(pts[b][k] - (k === "x" ? (b[1] === "L" ? lowB.x0 : lowB.x1 + 1) : (b[0] === "T" ? lowB.y0 : lowB.y1 + 1)) * s);
+      delete pts[errA > errB ? a : b];
+    }
+  }
+  if (Object.keys(pts).length < 3) return null;
+  const avg = (a, b, k) => (a && b ? (a[k] + b[k]) / 2 : (a || b) ? (a || b)[k] : null);
+  const left = avg(pts.TL, pts.BL, "x"), right = avg(pts.TR, pts.BR, "x");
+  const top = avg(pts.TL, pts.TR, "y"), bottom = avg(pts.BL, pts.BR, "y");
+  if ([left, right, top, bottom].some((v) => v === null)) return null;
+  const inset = Math.max(1, Math.round(Math.min(img.naturalWidth, img.naturalHeight) * 0.0012));
+  const crop = { x: left + inset, y: top + inset, w: right - left - inset * 2, h: bottom - top - inset * 2 };
+  if (crop.w < 40 || crop.h < 40) return null;
+  return { crop, marks: Object.keys(pts).length || used };
+}
+
+function defaultCrop(img) {
+  const iw = img.naturalWidth, ih = img.naturalHeight, hgt = ih * 0.7;
+  return { x: (iw - hgt) / 2, y: (ih - hgt) / 2, w: hgt, h: hgt };
+}
+
+function shapeOf(crop) {
+  const r = crop.w / crop.h;
+  for (const a of ASPECTS) if (a.r && Math.abs(r / a.r - 1) < 0.06) return a.id;
+  return "free";
+}
+
+// ===========================================================================
+// Card geometry & rendering
+// ===========================================================================
+function geom(p) {
+  const pw = Math.round(p.crop.w), ph = Math.round(p.crop.h), m = Math.min(pw, ph);
+  const side = Math.round(m * 0.06), top = side, bottom = Math.round(m * 0.24);
+  return { pw, ph, m, side, top, bottom, W: pw + side * 2, H: ph + top + bottom };
+}
+
+let paperTex = null;
+function paperPattern(ctx) {
+  if (!paperTex) {
+    paperTex = mk(160, 160);
+    const x = paperTex.getContext("2d"), id = x.createImageData(160, 160);
+    for (let i = 0; i < id.data.length; i += 4) {
+      const v = Math.random() * 255; id.data[i] = id.data[i + 1] = id.data[i + 2] = v; id.data[i + 3] = 10;
+    }
+    x.putImageData(id, 0, 0);
+  }
+  return ctx.createPattern(paperTex, "repeat");
+}
+
+// Draw the whole print. scale: output px per card px. preview: show selection.
+function render(ctx, p, scale, preview) {
+  const g = geom(p), ed = p.ed, m = g.m;
+  const card = (CARDS.find((c) => c.id === ed.card) || CARDS[0]).c;
+  ctx.save();
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  ctx.fillStyle = card; ctx.fillRect(0, 0, g.W, g.H);
+  // gentle paper texture + light falloff
+  ctx.fillStyle = paperPattern(ctx); ctx.fillRect(0, 0, g.W, g.H);
+  const gr = ctx.createLinearGradient(0, 0, 0, g.H);
+  gr.addColorStop(0, "rgba(255,255,255,.05)"); gr.addColorStop(1, "rgba(0,0,0,.06)");
+  ctx.fillStyle = gr; ctx.fillRect(0, 0, g.W, g.H);
+  // photo
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(p.img, p.crop.x, p.crop.y, p.crop.w, p.crop.h, g.side, g.top, g.pw, g.ph);
+  // recessed edge
+  ctx.strokeStyle = "rgba(0,0,0,.28)"; ctx.lineWidth = Math.max(1, m * 0.0025);
+  ctx.strokeRect(g.side, g.top, g.pw, g.ph);
+  // date stamp
+  if (ed.stamp.on && ed.stamp.text.trim()) {
+    const fs = m * 0.042;
+    ctx.font = `${fs}px "Share Tech Mono", monospace`;
+    ctx.textAlign = "right"; ctx.textBaseline = "alphabetic";
+    ctx.fillStyle = "#ff9a3c"; ctx.shadowColor = "rgba(255,110,20,.85)"; ctx.shadowBlur = fs * 0.35;
+    ctx.fillText(ed.stamp.text, g.side + g.pw - m * 0.035, g.top + g.ph - m * 0.035);
+    ctx.shadowBlur = 0;
+  }
+  // caption on the thick bottom edge
+  if (ed.caption.trim()) {
+    let fs = m * 0.09;
+    ctx.font = fontStr(ed.capFont, fs);
+    const maxW = g.W - g.side * 3;
+    const tw = ctx.measureText(ed.caption).width;
+    if (tw > maxW) { fs *= maxW / tw; ctx.font = fontStr(ed.capFont, fs); }
+    ctx.fillStyle = ed.capInk; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.globalAlpha = 0.92;
+    ctx.fillText(ed.caption, g.W / 2, g.top + g.ph + g.bottom * 0.5);
+    ctx.globalAlpha = 1;
+  }
+  // layers (positions are stored in units of m, so they survive any resolution)
+  ctx.scale(m, m);
+  for (const o of ed.objs) drawObj(ctx, o, m);
+  if (preview && S.sel && ed.objs.includes(S.sel)) {
+    const b = bbox(S.sel, m);
+    ctx.setLineDash([0.012, 0.008]); ctx.lineWidth = 0.004; ctx.strokeStyle = "#ff6a4a";
+    ctx.strokeRect(b.x0 - 0.01, b.y0 - 0.01, b.x1 - b.x0 + 0.02, b.y1 - b.y0 + 0.02);
+    ctx.setLineDash([]);
+  }
+  ctx.restore();
+}
+
+function drawObj(ctx, o, m) {
+  ctx.save();
+  if (o.t === "pen") {
+    ctx.strokeStyle = o.c; ctx.lineWidth = o.w; ctx.lineCap = "round"; ctx.lineJoin = "round";
+    ctx.globalAlpha = 0.88; ctx.shadowColor = o.c; ctx.shadowBlur = o.w * m * 0.25;
+    ctx.beginPath();
+    o.pts.forEach((q, i) => (i ? ctx.lineTo(q[0], q[1]) : ctx.moveTo(q[0], q[1])));
+    if (o.pts.length === 1) ctx.lineTo(o.pts[0][0] + 0.0001, o.pts[0][1]);
+    ctx.stroke();
+  } else if (o.t === "text") {
+    ctx.translate(o.x, o.y); ctx.rotate((o.r || 0) * Math.PI / 180);
+    ctx.font = fontStr(o.f, o.s); ctx.fillStyle = o.c; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    const lines = (o.txt || " ").split("\n"), lh = o.s * 1.12, y0 = -((lines.length - 1) * lh) / 2;
+    if (o.c === "#ffffff" || o.c === "#f1c40f") { ctx.shadowColor = "rgba(0,0,0,.55)"; ctx.shadowBlur = o.s * m * 0.08; }
+    lines.forEach((ln, i) => ctx.fillText(ln, 0, y0 + i * lh));
+  } else if (o.t === "tape") {
+    ctx.translate(o.x, o.y); ctx.rotate((o.r || 0) * Math.PI / 180);
+    const w = o.w, h = o.h;
+    ctx.shadowColor = "rgba(0,0,0,.25)"; ctx.shadowBlur = h * m * 0.12; ctx.shadowOffsetY = h * m * 0.04;
+    ctx.fillStyle = o.c;
+    // torn ends
+    ctx.beginPath(); ctx.moveTo(-w / 2, -h / 2);
+    ctx.lineTo(w / 2, -h / 2);
+    for (let i = 1; i <= 6; i++) ctx.lineTo(w / 2 + (i % 2 ? -h * 0.06 : 0), -h / 2 + (h * i) / 6);
+    ctx.lineTo(-w / 2, h / 2);
+    for (let i = 5; i >= 0; i--) ctx.lineTo(-w / 2 + (i % 2 ? h * 0.06 : 0), -h / 2 + (h * i) / 6);
+    ctx.closePath(); ctx.fill();
+    ctx.shadowColor = "transparent";
+    if (o.txt) {
+      const dark = o.c === "#1b1b1b";
+      let fs = h * 0.55; ctx.font = fontStr(o.f || "Permanent Marker", fs);
+      const tw = ctx.measureText(o.txt).width; if (tw > w * 0.88) { fs *= (w * 0.88) / tw; ctx.font = fontStr(o.f || "Permanent Marker", fs); }
+      ctx.fillStyle = dark ? "#f3ecdc" : "#1b1b1b"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText(o.txt, 0, h * 0.03);
+    }
+  } else if (o.t === "stk") {
+    ctx.translate(o.x, o.y); ctx.rotate((o.r || 0) * Math.PI / 180);
+    drawSticker(ctx, o.k, o.s, o.c);
+  }
+  ctx.restore();
+}
+
+function drawSticker(ctx, k, s, c) {
+  const h = s / 2;
+  ctx.fillStyle = c; ctx.strokeStyle = c; ctx.lineCap = "round"; ctx.lineJoin = "round";
+  if (k === "heart") {
+    ctx.beginPath(); ctx.moveTo(0, h * 0.85);
+    ctx.bezierCurveTo(-h * 1.15, h * 0.05, -h * 0.6, -h * 0.95, 0, -h * 0.35);
+    ctx.bezierCurveTo(h * 0.6, -h * 0.95, h * 1.15, h * 0.05, 0, h * 0.85); ctx.fill();
+  } else if (k === "star") {
+    ctx.beginPath();
+    for (let i = 0; i < 10; i++) { const r = i % 2 ? h * 0.42 : h, a = -Math.PI / 2 + (i * Math.PI) / 5; ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
+    ctx.closePath(); ctx.fill();
+  } else if (k === "sparkle") {
+    ctx.beginPath();
+    for (let i = 0; i < 8; i++) { const r = i % 2 ? h * 0.18 : h, a = -Math.PI / 2 + (i * Math.PI) / 4; ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
+    ctx.closePath(); ctx.fill();
+  } else if (k === "arrow") {
+    ctx.lineWidth = s * 0.11;
+    ctx.beginPath(); ctx.moveTo(-h * 0.9, h * 0.35); ctx.quadraticCurveTo(-h * 0.1, -h * 0.5, h * 0.8, -h * 0.1); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(h * 0.35, -h * 0.55); ctx.lineTo(h * 0.85, -h * 0.1); ctx.lineTo(h * 0.3, h * 0.25); ctx.stroke();
+  } else if (k === "cross") {
+    ctx.lineWidth = s * 0.13;
+    ctx.beginPath(); ctx.moveTo(-h * 0.75, -h * 0.7); ctx.lineTo(h * 0.75, h * 0.72); ctx.moveTo(h * 0.7, -h * 0.75); ctx.lineTo(-h * 0.72, h * 0.7); ctx.stroke();
+  } else if (k === "ring") {
+    ctx.lineWidth = s * 0.06;
+    ctx.beginPath(); ctx.ellipse(0, 0, h * 0.95, h * 0.7, -0.1, 0.2, Math.PI * 2.1); ctx.stroke();
+  } else if (k === "badge") {
+    ctx.beginPath();
+    for (let i = 0; i < 32; i++) { const r = i % 2 ? h * 0.88 : h, a = (i * Math.PI) / 16; ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = (c === "#ffffff" || c === "#f1c40f") ? "#1b1b1b" : "#fff";
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = fontStr("Permanent Marker", s * 0.2);
+    ctx.fillText("BEST", 0, -s * 0.09); ctx.fillText("SHOT!", 0, s * 0.13);
+  }
+}
+
+const mctx = mk(4, 4).getContext("2d");
+function bbox(o, m) {
+  if (o.t === "pen") {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const q of o.pts) { x0 = Math.min(x0, q[0]); y0 = Math.min(y0, q[1]); x1 = Math.max(x1, q[0]); y1 = Math.max(y1, q[1]); }
+    return { x0: x0 - o.w / 2, y0: y0 - o.w / 2, x1: x1 + o.w / 2, y1: y1 + o.w / 2 };
+  }
+  if (o.t === "text") {
+    mctx.font = fontStr(o.f, o.s * 100);
+    const lines = (o.txt || " ").split("\n");
+    const w = Math.max(...lines.map((l) => mctx.measureText(l).width)) / 100, h = lines.length * o.s * 1.12;
+    return { x0: o.x - w / 2, y0: o.y - h / 2, x1: o.x + w / 2, y1: o.y + h / 2 };
+  }
+  if (o.t === "tape") return { x0: o.x - o.w / 2, y0: o.y - o.h / 2, x1: o.x + o.w / 2, y1: o.y + o.h / 2 };
+  return { x0: o.x - o.s / 2, y0: o.y - o.s / 2, x1: o.x + o.s / 2, y1: o.y + o.s / 2 };
+}
+
+// ===========================================================================
+// Photos: loading, saving
+// ===========================================================================
+function newEd() {
+  return { card: "cream", caption: "", capFont: "Caveat", capInk: "#1f2340", stamp: { on: false, text: "" }, objs: [] };
+}
+function key(p) { return "snapdr:" + p.name + ":" + p.size; }
+function save(p) {
+  clearTimeout(save.t);
+  save.t = setTimeout(() => store(false, key(p), { crop: p.crop, ed: p.ed, det: p.det }), 300);
+}
+
+// "WoWScrnShot_112626_171602.jpg" -> "26 11 '26"
+function stampFromName(name) {
+  const m = /(\d{2})(\d{2})(\d{2})_(\d{2})(\d{2})/.exec(name);
+  return m ? `${m[2]} ${m[1]} '${m[3]}` : "";
+}
+
+function loadImage(src) {
+  return new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = src; });
+}
+
+async function addFiles(files) {
+  const list = [...files].filter((f) => f.type.startsWith("image/") || /\.(jpe?g|png|tga|bmp|webp)$/i.test(f.name));
+  if (!list.length) { banner("Those don't look like screenshots."); return; }
+  let firstNew = -1;
+  for (const f of list) {
+    let img;
+    try { img = await loadImage(URL.createObjectURL(f)); }
+    catch (e) { banner(`Couldn't open ${f.name}. TGA files need converting to JPG or PNG first.`, 5000); continue; }
+    const p = { id: ++uid, name: f.name, size: f.size, img, crop: null, ed: newEd(), det: null, undo: [], redo: [] };
+    const saved = store(true, key(p));
+    if (saved && saved.crop) { p.crop = saved.crop; p.ed = Object.assign(newEd(), saved.ed); p.det = saved.det || "saved"; }
+    else {
+      const d = detectCrop(img);
+      if (d) { p.crop = d.crop; p.det = d.marks >= 4 ? "auto" : "partial"; }
+      else { p.crop = defaultCrop(img); p.det = "none"; }
+      p.ed.stamp.text = stampFromName(f.name);
+    }
+    S.photos.push(p);
+    if (firstNew < 0) firstNew = S.photos.length - 1;
+    buildQueue();
+  }
+  if (firstNew >= 0) select(firstNew);
+  const found = S.photos.filter((p) => p.det === "auto" || p.det === "partial").length;
+  if (list.length > 1) banner(`${list.length} screenshots developed. Crop marks found on ${found}.`);
+}
+
+// ===========================================================================
+// UI: queue, panel
+// ===========================================================================
+function buildQueue() {
+  const ql = $("qList"); ql.innerHTML = "";
+  $("qEmpty").style.display = S.photos.length ? "none" : "";
+  S.photos.forEach((p, i) => {
+    const d = document.createElement("div"); d.className = "qi" + (i === S.cur ? " on" : "");
+    const c = mk(10, 10); p.thumb = c; d.appendChild(c);
+    const col = p.det === "auto" || p.det === "saved" ? "var(--ok)" : p.det === "partial" ? "var(--warn)" : "#777";
+    d.insertAdjacentHTML("beforeend", `<div class="nm"><span class="dot" style="background:${col}"></span>${escapeHtml(p.name)}</div><button class="x" title="Remove">×</button>`);
+    d.onclick = (e) => { if (e.target.classList.contains("x")) { removePhoto(i); return; } select(i); };
+    ql.appendChild(d);
+    drawThumb(p);
+  });
+}
+function drawThumb(p) {
+  if (!p.thumb) return;
+  const g = geom(p), sc = 170 / g.W;
+  p.thumb.width = Math.round(g.W * sc); p.thumb.height = Math.round(g.H * sc);
+  render(p.thumb.getContext("2d"), p, sc, false);
+}
+function escapeHtml(s) { return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+function removePhoto(i) {
+  S.photos.splice(i, 1);
+  if (S.cur >= S.photos.length) S.cur = S.photos.length - 1;
+  buildQueue(); select(S.cur);
+}
+
+function select(i) {
+  S.cur = i; S.sel = null; S.mode = "edit";
+  const p = cur();
+  $("drop").style.display = p ? "none" : "";
+  cv.style.display = p ? "block" : "none";
+  $("noPhoto").classList.toggle("hide", !!p);
+  $("pEdit").classList.toggle("hide", !p);
+  document.querySelectorAll(".qi").forEach((el, k) => el.classList.toggle("on", k === i));
+  if (!p) return;
+  syncPanel(); draw();
+}
+
+function detText(p) {
+  return {
+    auto: ["ok", "Crop marks found. Your photo was cut out automatically."],
+    saved: ["ok", "Welcome back. Your earlier edits were restored."],
+    partial: ["warn", "Only 3 crop marks found, so the 4th was worked out. Check the crop looks right."],
+    none: ["warn", "No crop marks on this one. Click Adjust crop and drag the box over your photo."],
+  }[p.det] || ["", ""];
+}
+
+function syncPanel() {
+  const p = cur(); if (!p) return;
+  const [cls, txt] = detText(p);
+  const ds = $("detStatus"); ds.className = "status " + cls; ds.textContent = txt;
+  const shp = shapeOf(p.crop);
+  $("fmtLabel").textContent = (ASPECTS.find((a) => a.id === shp) || ASPECTS[0]).label.replace("Free", "Custom") + `  ·  ${Math.round(p.crop.w)}×${Math.round(p.crop.h)}`;
+  chips($("cardChips"), CARDS.map((c) => ({ v: c.id, l: c.label })), p.ed.card, (v) => {
+    edit(() => {
+      const wasDark = p.ed.card === "black";
+      p.ed.card = v;
+      if (v === "black" && p.ed.capInk === "#1f2340") p.ed.capInk = "#f3ecdc";
+      if (wasDark && v !== "black" && p.ed.capInk === "#f3ecdc") p.ed.capInk = "#1f2340";
+    }); syncPanel();
+  });
+  $("capIn").value = p.ed.caption;
+  chips($("capFonts"), FONTS.map((f) => ({ v: f.id, l: f.label })), p.ed.capFont, (v) => { edit(() => (p.ed.capFont = v)); syncPanel(); });
+  swatches($("capInks"), [...INKS, "#f3ecdc"], p.ed.capInk, (v) => { edit(() => (p.ed.capInk = v)); syncPanel(); });
+  $("stOn").checked = p.ed.stamp.on; $("stIn").value = p.ed.stamp.text;
+  $("cropSec").style.display = S.mode === "crop" ? "" : "none";
+  $("editSecs").style.display = S.mode === "crop" ? "none" : "";
+  buildTools(); syncSel();
+}
+
+function chips(el, items, val, fn) {
+  el.innerHTML = "";
+  for (const it of items) {
+    const b = document.createElement("button"); b.className = "chip" + (it.v === val ? " on" : ""); b.textContent = it.l;
+    b.onclick = () => fn(it.v); el.appendChild(b);
+  }
+}
+function swatches(el, cols, val, fn) {
+  el.innerHTML = "";
+  for (const c of cols) {
+    const b = document.createElement("button"); b.className = "sw" + (c === val ? " on" : ""); b.style.background = c; b.title = c;
+    b.onclick = () => fn(c); el.appendChild(b);
+  }
+}
+
+function buildTools() {
+  const t = $("tools"); t.innerHTML = "";
+  for (const tl of TOOLS) {
+    const b = document.createElement("button"); b.className = "tool" + (S.tool === tl.id ? " on" : "");
+    b.innerHTML = `<b>${tl.icon}</b>${tl.label}`;
+    b.onclick = () => { S.tool = tl.id; if (tl.id !== "select") S.sel = null; buildTools(); syncSel(); draw(); };
+    t.appendChild(b);
+  }
+  const o = $("toolOpts"); o.innerHTML = "";
+  const row = (label) => { const r = document.createElement("div"); r.className = "row"; r.innerHTML = `<label>${label}</label>`; const c = document.createElement("div"); c.className = "chips"; r.appendChild(c); o.appendChild(r); return c; };
+  if (S.tool === "pen") {
+    chips(row("Width"), PEN_W.map((p) => ({ v: p.v, l: p.l })), S.pen.w, (v) => { S.pen.w = v; buildTools(); });
+    swatches(row("Ink"), INKS, S.pen.c, (v) => { S.pen.c = v; buildTools(); });
+  } else if (S.tool === "sticker") {
+    const g = document.createElement("div"); g.className = "stk";
+    for (const k of STICKERS) {
+      const b = document.createElement("button"); b.className = S.sticker === k ? "on" : ""; b.title = k;
+      const c = mk(48, 48), x = c.getContext("2d"); x.translate(24, 24); drawSticker(x, k, 40, S.stkColor);
+      b.appendChild(c); b.onclick = () => { S.sticker = k; buildTools(); }; g.appendChild(b);
+    }
+    o.appendChild(g);
+    swatches(row("Colour"), INKS, S.stkColor, (v) => { S.stkColor = v; buildTools(); });
+    o.insertAdjacentHTML("beforeend", `<p class="muted">Click the print to stick it on.</p>`);
+  } else if (S.tool === "tape") {
+    swatches(row("Tape"), TAPES.map((t) => t.c), S.tape, (v) => { S.tape = v; buildTools(); });
+    o.insertAdjacentHTML("beforeend", `<p class="muted">Drag across anything you want covered, like a name or chat bubble. You can write on tape too.</p>`);
+  } else if (S.tool === "text") {
+    o.insertAdjacentHTML("beforeend", `<p class="muted">Click where you want the text, then type it under <b>Selected</b>.</p>`);
+  } else {
+    o.insertAdjacentHTML("beforeend", `<p class="muted">Click something you added to move, resize or delete it.</p>`);
+  }
+}
+
+function syncSel() {
+  const o = S.sel, p = cur();
+  $("selSec").style.display = o && S.mode === "edit" ? "" : "none";
+  if (!o || !p) return;
+  const hasText = o.t === "text" || o.t === "tape";
+  $("selText").style.display = hasText ? "" : "none";
+  $("selFontRow").style.display = hasText ? "" : "none";
+  $("selTxt").value = o.txt || "";
+  $("selTxt").placeholder = o.t === "tape" ? "Write on the tape (optional)" : "Type here…";
+  if (hasText) chips($("selFonts"), FONTS.map((f) => ({ v: f.id, l: f.label })), o.f || (o.t === "tape" ? "Permanent Marker" : "Caveat"), (v) => { edit(() => (o.f = v)); syncSel(); });
+  const cols = o.t === "tape" ? TAPES.map((t) => t.c) : INKS;
+  swatches($("selInks"), cols, o.c, (v) => { edit(() => (o.c = v)); syncSel(); });
+  const sz = $("selSize");
+  if (o.t === "pen") { sz.min = 0.003; sz.max = 0.06; sz.value = o.w; }
+  else if (o.t === "tape") { sz.min = 0.04; sz.max = 0.4; sz.value = o.h; }
+  else { sz.min = 0.02; sz.max = 0.6; sz.value = o.s; }
+  $("selRot").value = o.r || 0;
+  $("selRot").parentElement.style.display = o.t === "pen" ? "none" : "";
+}
+
+// ===========================================================================
+// Undo
+// ===========================================================================
+function snapshot(p) { return JSON.stringify(p.ed); }
+function pushUndo() { const p = cur(); if (!p) return; p.undo.push(snapshot(p)); if (p.undo.length > 80) p.undo.shift(); p.redo = []; }
+function edit(fn) { const p = cur(); if (!p) return; pushUndo(); fn(); changed(); }
+function changed() { const p = cur(); if (!p) return; save(p); draw(); clearTimeout(changed.t); changed.t = setTimeout(() => drawThumb(p), 250); }
+function restore(json) {
+  const p = cur(); const selIdx = S.sel ? p.ed.objs.indexOf(S.sel) : -1;
+  p.ed = JSON.parse(json); S.sel = selIdx >= 0 ? p.ed.objs[selIdx] || null : null;
+  syncPanel(); changed();
+}
+function undo() { const p = cur(); if (!p || !p.undo.length) return; p.redo.push(snapshot(p)); restore(p.undo.pop()); }
+function redo() { const p = cur(); if (!p || !p.redo.length) return; p.undo.push(snapshot(p)); restore(p.redo.pop()); }
+
+// ===========================================================================
+// Drawing to screen
+// ===========================================================================
+function draw() {
+  const p = cur(); if (!p) return;
+  if (S.mode === "crop") return drawCrop(p);
+  const g = geom(p);
+  S.ps = Math.min(1, PREVIEW_MAX / Math.max(g.W, g.H));
+  const w = Math.round(g.W * S.ps), h = Math.round(g.H * S.ps);
+  if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+  cx.clearRect(0, 0, w, h);
+  render(cx, p, S.ps, true);
+  cv.style.cursor = { select: "default", pen: "crosshair", text: "text", sticker: "copy", tape: "crosshair" }[S.tool];
+}
+
+function drawCrop(p) {
+  const iw = p.img.naturalWidth, ih = p.img.naturalHeight;
+  S.cs = Math.min(1, PREVIEW_MAX / Math.max(iw, ih));
+  const w = Math.round(iw * S.cs), h = Math.round(ih * S.cs);
+  if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+  cx.setTransform(1, 0, 0, 1, 0, 0);
+  cx.drawImage(p.img, 0, 0, w, h);
+  const c = p.crop, s = S.cs, x = c.x * s, y = c.y * s, cw = c.w * s, ch = c.h * s;
+  cx.fillStyle = "rgba(0,0,0,.6)";
+  cx.fillRect(0, 0, w, y); cx.fillRect(0, y + ch, w, h - y - ch); cx.fillRect(0, y, x, ch); cx.fillRect(x + cw, y, w - x - cw, ch);
+  cx.strokeStyle = "#ff6a4a"; cx.lineWidth = 2; cx.strokeRect(x, y, cw, ch);
+  cx.strokeStyle = "rgba(255,255,255,.25)"; cx.lineWidth = 1;
+  for (let i = 1; i < 3; i++) { cx.beginPath(); cx.moveTo(x + (cw * i) / 3, y); cx.lineTo(x + (cw * i) / 3, y + ch); cx.moveTo(x, y + (ch * i) / 3); cx.lineTo(x + cw, y + (ch * i) / 3); cx.stroke(); }
+  const hs = handleSize();
+  cx.fillStyle = "#ff6a4a";
+  for (const [hx, hy] of [[x, y], [x + cw, y], [x, y + ch], [x + cw, y + ch]]) cx.fillRect(hx - hs / 2, hy - hs / 2, hs, hs);
+  cv.style.cursor = "move";
+}
+function handleSize() { const r = cv.getBoundingClientRect(); return 14 * (cv.width / (r.width || 1)); }
+
+// ===========================================================================
+// Pointer interaction
+// ===========================================================================
+function evPos(e) {
+  const r = cv.getBoundingClientRect(), k = cv.width / r.width;
+  return { x: (e.clientX - r.left) * k, y: (e.clientY - r.top) * k };
+}
+function toUnits(pt) { const p = cur(), m = geom(p).m; return { x: pt.x / S.ps / m, y: pt.y / S.ps / m }; }
+
+cv.addEventListener("pointerdown", (e) => {
+  const p = cur(); if (!p) return;
+  cv.setPointerCapture(e.pointerId);
+  const pt = evPos(e);
+  if (S.mode === "crop") return cropDown(p, pt);
+  const u = toUnits(pt), m = geom(p).m;
+  if (S.tool === "select") {
+    const hit = [...p.ed.objs].reverse().find((o) => { const b = bbox(o, m); return u.x >= b.x0 - 0.015 && u.x <= b.x1 + 0.015 && u.y >= b.y0 - 0.015 && u.y <= b.y1 + 0.015; });
+    S.sel = hit || null; syncSel(); draw();
+    if (hit) S.drag = { kind: "move", last: u, pushed: false };
+  } else if (S.tool === "pen") {
+    pushUndo();
+    const o = { t: "pen", pts: [[u.x, u.y]], w: S.pen.w, c: S.pen.c };
+    p.ed.objs.push(o); S.drag = { kind: "pen", o }; draw();
+  } else if (S.tool === "text") {
+    pushUndo();
+    const ink = p.ed.card === "black" ? "#f3ecdc" : "#1f2340";
+    const o = { t: "text", x: u.x, y: u.y, s: 0.08, c: ink, f: "Caveat", txt: "Your text", r: 0 };
+    p.ed.objs.push(o); S.sel = o; S.tool = "select"; buildTools(); syncSel(); changed();
+    setTimeout(() => { $("selTxt").focus(); $("selTxt").select(); }, 0);
+  } else if (S.tool === "sticker") {
+    pushUndo();
+    const o = { t: "stk", k: S.sticker, x: u.x, y: u.y, s: 0.14, c: S.stkColor, r: Math.round(Math.random() * 16 - 8) };
+    p.ed.objs.push(o); S.sel = o; syncSel(); changed();
+  } else if (S.tool === "tape") {
+    pushUndo();
+    const o = { t: "tape", x: u.x, y: u.y, w: 0.02, h: 0.1, c: S.tape, txt: "", r: Math.round(Math.random() * 6 - 3) };
+    p.ed.objs.push(o); S.drag = { kind: "tape", o, start: u }; draw();
+  }
+});
+
+cv.addEventListener("pointermove", (e) => {
+  const p = cur(); if (!p || !S.drag) return;
+  const pt = evPos(e);
+  if (S.mode === "crop") return cropMove(p, pt);
+  const u = toUnits(pt), d = S.drag;
+  if (d.kind === "move" && S.sel) {
+    if (!d.pushed) { pushUndo(); d.pushed = true; }
+    const dx = u.x - d.last.x, dy = u.y - d.last.y; d.last = u;
+    const o = S.sel;
+    if (o.t === "pen") o.pts.forEach((q) => { q[0] += dx; q[1] += dy; }); else { o.x += dx; o.y += dy; }
+    draw();
+  } else if (d.kind === "pen") {
+    const last = d.o.pts[d.o.pts.length - 1];
+    if (Math.hypot(u.x - last[0], u.y - last[1]) > 0.002) { d.o.pts.push([u.x, u.y]); draw(); }
+  } else if (d.kind === "tape") {
+    const o = d.o, sx = d.start.x, sy = d.start.y;
+    const len = Math.hypot(u.x - sx, u.y - sy);
+    o.w = Math.max(0.02, len); o.x = (sx + u.x) / 2; o.y = (sy + u.y) / 2;
+    o.r = clamp(Math.round(Math.atan2(u.y - sy, u.x - sx) * 180 / Math.PI), -30, 30);
+    if (u.x < sx) o.r = clamp(Math.round(Math.atan2(sy - u.y, sx - u.x) * 180 / Math.PI), -30, 30);
+    draw();
+  }
+});
+
+function endDrag() {
+  const p = cur(), d = S.drag; S.drag = null;
+  if (!p || !d) return;
+  if (S.mode === "crop") { save(p); syncPanel(); drawThumb(p); return; }
+  if (d.kind === "tape") {
+    if (d.o.w < 0.06) { d.o.w = 0.4; d.o.r = Math.round(Math.random() * 6 - 3); }
+    S.sel = d.o; syncSel();
+  }
+  if (d.kind === "pen" || d.kind === "tape" || (d.kind === "move" && d.pushed)) changed();
+}
+cv.addEventListener("pointerup", endDrag);
+cv.addEventListener("pointercancel", endDrag);
+
+// ---- crop mode ----
+function cropDown(p, pt) {
+  const s = S.cs, c = p.crop, hs = handleSize() * 1.2;
+  const corners = { tl: [c.x, c.y], tr: [c.x + c.w, c.y], bl: [c.x, c.y + c.h], br: [c.x + c.w, c.y + c.h] };
+  for (const k in corners) {
+    if (Math.abs(pt.x - corners[k][0] * s) < hs && Math.abs(pt.y - corners[k][1] * s) < hs) { S.drag = { kind: "corner", k }; return; }
+  }
+  if (pt.x >= c.x * s && pt.x <= (c.x + c.w) * s && pt.y >= c.y * s && pt.y <= (c.y + c.h) * s)
+    S.drag = { kind: "cropmove", last: { x: pt.x / s, y: pt.y / s } };
+}
+function cropMove(p, pt) {
+  const s = S.cs, iw = p.img.naturalWidth, ih = p.img.naturalHeight, c = p.crop;
+  const ix = clamp(pt.x / s, 0, iw), iy = clamp(pt.y / s, 0, ih);
+  if (S.drag.kind === "cropmove") {
+    c.x = clamp(c.x + ix - S.drag.last.x, 0, iw - c.w); c.y = clamp(c.y + iy - S.drag.last.y, 0, ih - c.h);
+    S.drag.last = { x: ix, y: iy };
+  } else {
+    const k = S.drag.k;
+    const ax = k.includes("l") ? c.x + c.w : c.x, ay = k.includes("t") ? c.y + c.h : c.y; // fixed corner
+    let w = Math.max(40, Math.abs(ix - ax)), h = Math.max(40, Math.abs(iy - ay));
+    const r = (ASPECTS.find((a) => a.id === S.aspect) || ASPECTS[0]).r;
+    if (r) { if (w / h > r) w = h * r; else h = w / r; }
+    w = Math.min(w, k.includes("l") ? ax : iw - ax); h = Math.min(h, k.includes("t") ? ay : ih - ay);
+    if (r) { if (w / h > r) w = h * r; else h = w / r; }
+    c.w = w; c.h = h; c.x = k.includes("l") ? ax - w : ax; c.y = k.includes("t") ? ay - h : ay;
+  }
+  draw();
+}
+function setAspect(id) {
+  const p = cur(); S.aspect = id;
+  const r = (ASPECTS.find((a) => a.id === id) || ASPECTS[0]).r;
+  if (r && p) {
+    const c = p.crop, iw = p.img.naturalWidth, ih = p.img.naturalHeight, cxm = c.x + c.w / 2, cym = c.y + c.h / 2;
+    let w = c.w, h = w / r; if (h > ih * 0.95) { h = ih * 0.9; w = h * r; } if (w > iw * 0.95) { w = iw * 0.9; h = w / r; }
+    c.w = w; c.h = h; c.x = clamp(cxm - w / 2, 0, iw - w); c.y = clamp(cym - h / 2, 0, ih - h);
+  }
+  chips($("aspChips"), ASPECTS.map((a) => ({ v: a.id, l: a.label })), S.aspect, setAspect);
+  draw();
+}
+function enterCrop() {
+  const p = cur(); if (!p) return;
+  S.mode = "crop"; S.sel = null; S.aspect = shapeOf(p.crop);
+  chips($("aspChips"), ASPECTS.map((a) => ({ v: a.id, l: a.label })), S.aspect, setAspect);
+  syncPanel(); draw();
+}
+function exitCrop() {
+  const p = cur(); if (!p) return;
+  S.mode = "edit";
+  if (p.det === "none" || p.det === "partial") p.det = "manual";
+  p.crop = { x: Math.round(p.crop.x), y: Math.round(p.crop.y), w: Math.round(p.crop.w), h: Math.round(p.crop.h) };
+  save(p); syncPanel(); draw(); drawThumb(p);
+}
+
+// ===========================================================================
+// Export
+// ===========================================================================
+function exportBlob(p) {
+  const g = geom(p), want = +$("expSize").value, sc = want ? Math.min(1, want / g.W) : 1;
+  const c = mk(g.W * sc, g.H * sc);
+  render(c.getContext("2d"), p, sc, false);
+  const type = $("expType").value;
+  return new Promise((res) => c.toBlob(res, "image/" + type, 0.93));
+}
+async function download(p) {
+  const blob = await exportBlob(p);
+  if (!blob) { banner("That print is too big for your browser. Try a smaller size."); return; }
+  const ext = $("expType").value === "png" ? "png" : "jpg";
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = p.name.replace(/\.[^.]+$/, "") + "_polaroid." + ext;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+
+// ===========================================================================
+// Sample negative, for trying the page without the game
+// ===========================================================================
+// Draws the four corner brackets exactly as the addon does (see README.md).
+// Each bracket sits just outside the photo; its arms meet at the photo corner.
+function drawMarks(ctx, x0, y0, pw, ph, screenH = ctx.canvas.height) {
+  const L = Math.max(24, Math.round(screenH * 0.03)), t = Math.max(6, Math.round(screenH * 0.006)), o = Math.max(3, Math.round(t / 2));
+  const corners = [[x0, y0, -1, -1], [x0 + pw, y0, 1, -1], [x0, y0 + ph, -1, 1], [x0 + pw, y0 + ph, 1, 1]];
+  const arms = (cx0, cy0, sx, sy, grow) => [
+    // horizontal arm along the top/bottom edge, vertical arm along the left/right edge
+    [(sx < 0 ? cx0 - t : cx0 - L) - grow, (sy < 0 ? cy0 - t : cy0) - grow, L + t + grow * 2, t + grow * 2],
+    [(sx < 0 ? cx0 - t : cx0) - grow, (sy < 0 ? cy0 - t : cy0 - L) - grow, t + grow * 2, L + t + grow * 2],
+  ];
+  for (const [cx0, cy0, sx, sy] of corners) {
+    ctx.fillStyle = "#141414"; for (const r of arms(cx0, cy0, sx, sy, o)) ctx.fillRect(...r);
+    ctx.fillStyle = "#ff00ff"; for (const r of arms(cx0, cy0, sx, sy, 0)) ctx.fillRect(...r);
+  }
+}
+async function makeSample() {
+  const W = 1920, H = 1080, c = mk(W, H), x = c.getContext("2d");
+  const sky = x.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, "#2b3a67"); sky.addColorStop(0.45, "#e0795a"); sky.addColorStop(0.7, "#f6c177"); sky.addColorStop(1, "#3c4a2a");
+  x.fillStyle = sky; x.fillRect(0, 0, W, H);
+  x.fillStyle = "rgba(255,230,170,.9)"; x.beginPath(); x.arc(980, 560, 90, 0, Math.PI * 2); x.fill();
+  const hill = (col, base, amp, f) => { x.fillStyle = col; x.beginPath(); x.moveTo(0, H); for (let i = 0; i <= W; i += 20) x.lineTo(i, base + Math.sin(i * f) * amp + Math.sin(i * f * 2.7) * amp * 0.4); x.lineTo(W, H); x.fill(); };
+  hill("#6b4e3d", 640, 40, 0.004); hill("#4d5b2e", 720, 30, 0.006); hill("#2f3b1f", 820, 25, 0.009);
+  for (let i = 0; i < 9; i++) { const tx = 120 + i * 210, ty = 800 + (i % 3) * 18; x.fillStyle = "#1e2614"; x.beginPath(); x.moveTo(tx, ty - 120); x.lineTo(tx - 40, ty); x.lineTo(tx + 40, ty); x.fill(); }
+  // fake game UI the darkroom should throw away
+  x.fillStyle = "rgba(0,0,0,.55)"; x.fillRect(20, 760, 420, 220);
+  x.fillStyle = "#ffd200"; x.font = "18px sans-serif"; x.fillText("[Guild] Mrgl: say cheese!", 34, 800);
+  for (let i = 0; i < 12; i++) { x.fillStyle = "#222"; x.fillRect(620 + i * 56, 1010, 50, 50); x.strokeStyle = "#a88"; x.strokeRect(620 + i * 56, 1010, 50, 50); }
+  // the in-game polaroid frame (square), with a typo in the caption
+  const ph = 640, pw = 640, px = (W - pw) / 2, py = 150, side = 38, bottom = 150;
+  x.fillStyle = "rgba(0,0,0,.4)"; x.fillRect(px - side + 8, py - side + 10, pw + side * 2, ph + side + bottom);
+  x.fillStyle = "#f3ecdc";
+  x.fillRect(px - side, py - side, pw + side * 2, side); x.fillRect(px - side, py + ph, pw + side * 2, bottom);
+  x.fillRect(px - side, py, side, ph); x.fillRect(px + pw, py, side, ph);
+  x.fillStyle = "#1f2340"; x.font = "52px Caveat"; x.textAlign = "center"; x.fillText("Westfal sunset", W / 2, py + ph + 95);
+  drawMarks(x, px, py, pw, ph);
+  const blob = await new Promise((r) => c.toBlob(r, "image/jpeg", 0.82));
+  blob.name = "WoWScrnShot_112626_171602.jpg";
+  addFiles([new File([blob], blob.name, { type: "image/jpeg" })]);
+}
+
+// ===========================================================================
+// Wiring
+// ===========================================================================
+$("addBtn").onclick = $("addBtn2").onclick = () => $("fileIn").click();
+$("fileIn").onchange = (e) => { addFiles(e.target.files); e.target.value = ""; };
+$("sampleBtn").onclick = makeSample;
+$("helpBtn").onclick = () => $("help").showModal();
+$("cropBtn").onclick = enterCrop;
+$("cropDone").onclick = exitCrop;
+$("redetBtn").onclick = () => {
+  const p = cur(); if (!p) return;
+  const d = detectCrop(p.img);
+  if (d) { p.crop = d.crop; p.det = d.marks >= 4 ? "auto" : "partial"; banner("Crop marks found."); }
+  else banner("Still no crop marks on this one. Adjust the crop by hand.");
+  save(p); syncPanel(); draw(); drawThumb(p);
+};
+let capPushed = false;
+$("capIn").addEventListener("focus", () => (capPushed = false));
+$("capIn").addEventListener("input", (e) => { const p = cur(); if (!capPushed) { pushUndo(); capPushed = true; } p.ed.caption = e.target.value; changed(); });
+$("stOn").onchange = (e) => edit(() => (cur().ed.stamp.on = e.target.checked));
+$("stIn").addEventListener("input", (e) => { const p = cur(); p.ed.stamp.text = e.target.value; if (e.target.value && !p.ed.stamp.on) { p.ed.stamp.on = true; $("stOn").checked = true; } changed(); });
+let selPushed = false;
+$("selTxt").addEventListener("focus", () => (selPushed = false));
+$("selTxt").addEventListener("input", (e) => { if (!S.sel) return; if (!selPushed) { pushUndo(); selPushed = true; } S.sel.txt = e.target.value; changed(); });
+let sizePushed = false;
+for (const id of ["selSize", "selRot"]) {
+  $(id).addEventListener("pointerdown", () => (sizePushed = false));
+  $(id).addEventListener("input", (e) => {
+    const o = S.sel; if (!o) return;
+    if (!sizePushed) { pushUndo(); sizePushed = true; }
+    const v = +e.target.value;
+    if (id === "selRot") o.r = v;
+    else if (o.t === "pen") o.w = v;
+    else if (o.t === "tape") { const k = v / o.h; o.h = v; o.w *= k; }
+    else o.s = v;
+    changed();
+  });
+}
+$("selDel").onclick = () => { const p = cur(), o = S.sel; if (!o) return; edit(() => p.ed.objs.splice(p.ed.objs.indexOf(o), 1)); S.sel = null; syncSel(); draw(); };
+$("selFront").onclick = () => { const p = cur(), o = S.sel; if (!o) return; edit(() => { p.ed.objs.splice(p.ed.objs.indexOf(o), 1); p.ed.objs.push(o); }); };
+$("undoBtn").onclick = undo; $("redoBtn").onclick = redo;
+$("clearBtn").onclick = () => { const p = cur(); if (!p || !p.ed.objs.length) return; edit(() => (p.ed.objs = [])); S.sel = null; syncSel(); draw(); };
+$("dlBtn").onclick = () => { const p = cur(); if (p) download(p); };
+$("dlAllBtn").onclick = async () => { for (const p of S.photos) { await download(p); await new Promise((r) => setTimeout(r, 350)); } };
+
+document.addEventListener("keydown", (e) => {
+  const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName);
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" && !typing) { e.preventDefault(); e.shiftKey ? redo() : undo(); }
+  else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y" && !typing) { e.preventDefault(); redo(); }
+  else if ((e.key === "Delete" || e.key === "Backspace") && !typing && S.sel) { e.preventDefault(); $("selDel").click(); }
+  else if (e.key === "Escape" && S.mode === "crop") exitCrop();
+});
+document.addEventListener("paste", (e) => {
+  const files = [...(e.clipboardData?.files || [])];
+  if (files.length) { e.preventDefault(); addFiles(files.map((f, i) => f.name && f.name !== "image.png" ? f : new File([f], `Pasted_${Date.now()}_${i}.png`, { type: f.type }))); }
+});
+const stage = $("stage");
+["dragenter", "dragover"].forEach((t) => document.addEventListener(t, (e) => { e.preventDefault(); stage.classList.add("hot"); }));
+["dragleave", "drop"].forEach((t) => document.addEventListener(t, (e) => { e.preventDefault(); if (t === "drop" || !e.relatedTarget) stage.classList.remove("hot"); }));
+document.addEventListener("drop", (e) => { if (e.dataTransfer?.files?.length) addFiles(e.dataTransfer.files); });
+
+// make sure the card fonts are ready before the first print is drawn
+Promise.all(FONTS.map((f) => document.fonts.load(`${f.w} 40px "${f.id}"`).catch(() => {}))).then(() => { paperTex = null; draw(); S.photos.forEach(drawThumb); });
+
+// expose a tiny hook for automated testing
+window.__darkroom = { S, refine, findComponents, detectCrop, drawMarks, addFiles, geom, render };
+</script>
+</body>
+</html>
