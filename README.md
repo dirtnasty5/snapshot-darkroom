@@ -8,7 +8,9 @@ stickers or tape → download as PNG or JPEG.
 
 Everything runs in the player's browser. Nothing is uploaded anywhere.
 
-**Live page:** `https://<your-github-name>.github.io/<repo-name>/`
+**Live page:** https://dirtnasty5.github.io/snapshot-darkroom/
+
+**SnapShot addon:** https://www.curseforge.com/wow/addons/snapshot-forever
 
 ## Files
 
