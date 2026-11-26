@@ -119,12 +119,16 @@ kbd{background:var(--panel2);border:1px solid var(--line);border-radius:4px;padd
       <div class="sec">
         <h3>Print</h3>
         <div class="status" id="detStatus"></div>
+        <div id="textModeRow">
+          <div class="row"><label>Card text</label><div class="chips" id="textChips"></div></div>
+          <p class="muted" id="textModeNote"></p>
+        </div>
         <div class="row"><label>Shape</label><span id="fmtLabel" style="font-weight:600"></span></div>
         <div class="row">
           <button class="btn sm" id="cropBtn">Adjust crop</button>
           <button class="btn sm" id="redetBtn">Find marks again</button>
         </div>
-        <div class="row"><label>Card</label><div class="chips" id="cardChips"></div></div>
+        <div class="row" id="cardRow"><label>Card</label><div class="chips" id="cardChips"></div></div>
       </div>
 
       <div class="sec" id="cropSec" style="display:none">
@@ -135,7 +139,7 @@ kbd{background:var(--panel2);border:1px solid var(--line);border-radius:4px;padd
       </div>
 
       <div id="editSecs">
-        <div class="sec">
+        <div class="sec" id="capSec">
           <h3>Caption</h3>
           <input type="text" id="capIn" placeholder="Write on the card…" maxlength="80">
           <div class="row"><label>Pen</label><div class="chips" id="capFonts"></div></div>
@@ -196,9 +200,9 @@ kbd{background:var(--panel2);border:1px solid var(--line);border-radius:4px;padd
 <dialog id="help">
   <h2>How the darkroom works</h2>
   <ol>
-    <li>In game, take photos with <b>SnapShot</b> as usual. With <i>Darkroom crop marks</i> on, SnapShot draws four small pink corner marks around your photo.</li>
+    <li>In game, take photos with <b>SnapShot</b> as usual. With <i>Darkroom crop marks</i> on, SnapShot adds four small pink corner marks to the saved screenshot: around the polaroid card, or around the photo when the frame is off.</li>
     <li>Drop the screenshots here. The darkroom finds the marks and cuts out just your photo. The old frame, caption and any UI are left behind.</li>
-    <li>Your photo gets a brand new polaroid card. Type a caption (fix that typo!), add text, marker doodles, stickers or tape over anything you want hidden.</li>
+    <li>Polaroid shots keep the card exactly as SnapShot printed it, text and all. Want to fix a typo or change the words? Switch <b>Card text</b> to <b>Edit text</b> for a brand new card you can retype. Either way you can add text, marker doodles, stickers or tape over anything you want hidden.</li>
     <li>Download your print. PNG keeps it sharp; the Discord size is easy to share.</li>
   </ol>
   <p><b>No marks?</b> Older screenshots or full-screen shots work too: click <b>Adjust crop</b> and drag the box yourself.</p>
@@ -431,6 +435,102 @@ function refine(img, comp, s, role) {
   return { x: rx + (L ? ix + 1 : ix), y: ry + (T ? iy + 1 : iy) };
 }
 
+/* ---------------------------------------------------------------------------
+   Card mode. With the polaroid frame on, SnapShot puts the marks around the
+   outside of the cream card (so the card itself stays clean). The card has a
+   plain, even border on the top, left and right; the photo starts where that
+   border ends. The chin at the bottom holds the caption, so the photo's height
+   comes from its shape instead (1:1, 16:9 or 9:16). The card's chin is about
+   4.33x its side border (SnapShot: border 6%, chin 26% of the photo's short side).
+   Returns the photo rect, or null when the rect isn't a card (frameless shots).
+--------------------------------------------------------------------------- */
+const CARD_CHIN_RATIO = 0.26 / 0.06;
+const SHAPES = [1, 16 / 9, 9 / 16];
+
+function readStrip(img, x, y, w, h) {
+  x = Math.max(0, Math.round(x)); y = Math.max(0, Math.round(y));
+  w = Math.max(1, Math.min(img.naturalWidth - x, Math.round(w)));
+  h = Math.max(1, Math.min(img.naturalHeight - y, Math.round(h)));
+  const c = mk(w, h), cx = c.getContext("2d", { willReadFrequently: true });
+  cx.drawImage(img, x, y, w, h, 0, 0, w, h);
+  return { d: cx.getImageData(0, 0, w, h).data, w, h };
+}
+
+// Is this strip one plain, light colour (the card border)? Returns that colour.
+function plainLight(st) {
+  let n = 0, sr = 0, sg = 0, sb = 0, qr = 0, qg = 0, qb = 0;
+  for (let i = 0; i < st.d.length; i += 4) {
+    const r = st.d[i], g = st.d[i + 1], b = st.d[i + 2];
+    sr += r; sg += g; sb += b; qr += r * r; qg += g * g; qb += b * b; n++;
+  }
+  const mr = sr / n, mg = sg / n, mb = sb / n;
+  const sd = Math.sqrt(Math.max(0, qr / n - mr * mr) + Math.max(0, qg / n - mg * mg) + Math.max(0, qb / n - mb * mb));
+  const lum = 0.299 * mr + 0.587 * mg + 0.114 * mb;
+  return lum > 140 && sd < 18 ? [mr, mg, mb] : null;
+}
+
+// How far in from the card edge the plain border runs, scanning along `lines` lines.
+function borderDepth(img, R, side, ref, maxDepth) {
+  const vertical = side === "top";
+  const lines = 15, depths = [];
+  const st = vertical
+    ? readStrip(img, R.x + R.w * 0.3, R.y, R.w * 0.4, maxDepth)
+    : side === "left"
+      ? readStrip(img, R.x, R.y + R.h * 0.3, maxDepth, R.h * 0.4)
+      : readStrip(img, R.x + R.w - maxDepth, R.y + R.h * 0.3, maxDepth, R.h * 0.4);
+  for (let k = 0; k < lines; k++) {
+    let found = -1;
+    const along = Math.floor(((k + 0.5) / lines) * (vertical ? st.w : st.h));
+    const len = vertical ? st.h : st.w;
+    for (let t = 0; t < len; t++) {
+      const px = vertical ? along : side === "left" ? t : st.w - 1 - t;
+      const py = vertical ? t : along;
+      const p = (py * st.w + px) * 4;
+      const diff = Math.abs(st.d[p] - ref[0]) + Math.abs(st.d[p + 1] - ref[1]) + Math.abs(st.d[p + 2] - ref[2]);
+      if (diff > 36) { found = t; break; }
+    }
+    if (found > 0) depths.push(found);
+  }
+  if (depths.length < lines / 2) return null;
+  depths.sort((a, b) => a - b);
+  return depths[depths.length >> 1];
+}
+
+function cardToPhoto(img, R) {
+  const short = Math.min(R.w, R.h);
+  if (short < 80) return null;
+  const probe = Math.max(3, Math.round(short * 0.012));   // a band well inside the border
+  const pad = Math.max(2, Math.round(short * 0.004));      // stay clear of the very edge
+  const bands = {
+    top: readStrip(img, R.x + R.w * 0.2, R.y + pad, R.w * 0.6, probe),
+    left: readStrip(img, R.x + pad, R.y + R.h * 0.2, probe, R.h * 0.5),
+    right: readStrip(img, R.x + R.w - pad - probe, R.y + R.h * 0.2, probe, R.h * 0.5),
+  };
+  const refs = {};
+  for (const k in bands) { refs[k] = plainLight(bands[k]); if (!refs[k]) return null; }
+
+  const maxDepth = short * 0.2;
+  const dT = borderDepth(img, R, "top", refs.top, maxDepth);
+  const dL = borderDepth(img, R, "left", refs.left, maxDepth);
+  const dR = borderDepth(img, R, "right", refs.right, maxDepth);
+  if (!dT || !dL || !dR) return null;
+  // the three borders are the same width on a SnapShot card
+  const b = [dT, dL, dR].sort((a, c) => a - c)[1];
+  if ([dT, dL, dR].some((d) => Math.abs(d - b) > Math.max(4, b * 0.25))) return null;
+
+  const x = R.x + dL, y = R.y + dT, w = R.w - dL - dR;
+  // pick the shape whose chin matches the card's proportions best
+  let best = null;
+  for (const a of SHAPES) {
+    const h = w / a, chin = R.h - dT - h;
+    if (chin <= 0) continue;
+    const err = Math.abs(chin - b * CARD_CHIN_RATIO);
+    if (!best || err < best.err) best = { h, err };
+  }
+  if (!best || best.err > b * 2) return null;
+  return { x, y, w, h: Math.round(best.h) };
+}
+
 function detectCrop(img) {
   const { comps, s, w, h } = findComponents(img);
   const by = { TL: [], TR: [], BL: [], BR: [] };
@@ -467,8 +567,16 @@ function detectCrop(img) {
   const left = avg(pts.TL, pts.BL, "x"), right = avg(pts.TR, pts.BR, "x");
   const top = avg(pts.TL, pts.TR, "y"), bottom = avg(pts.BL, pts.BR, "y");
   if ([left, right, top, bottom].some((v) => v === null)) return null;
-  const inset = Math.max(1, Math.round(Math.min(img.naturalWidth, img.naturalHeight) * 0.0012));
-  const crop = { x: left + inset, y: top + inset, w: right - left - inset * 2, h: bottom - top - inset * 2 };
+  // Polaroid shots: the marks hug the outside of the cream card, so find the photo inside it.
+  const inner = cardToPhoto(img, { x: left, y: top, w: right - left, h: bottom - top });
+  const r = inner || { x: left, y: top, w: right - left, h: bottom - top };
+  // trim enough to clear the marks' dark edge, which older SnapShot versions drew a few
+  // pixels over the photo/card (O = max(3, T/2), T = max(6, 0.6% of screen height))
+  const sh = img.naturalHeight, markT = Math.max(6, Math.round(sh * 0.006)), markO = Math.max(3, Math.round(markT / 2));
+  const inset = Math.max(1, Math.round(Math.min(img.naturalWidth, img.naturalHeight) * 0.0012), markO + 1);
+  const crop = { x: r.x + inset, y: r.y + inset, w: r.w - inset * 2, h: r.h - inset * 2, card: !!inner };
+  // the in-game polaroid card as it was (frame, caption and all), for "Keep original"
+  if (inner) crop.orig = { x: left + inset, y: top + inset, w: right - left - inset * 2, h: bottom - top - inset * 2 };
   if (crop.w < 40 || crop.h < 40) return null;
   return { crop, marks: Object.keys(pts).length || used };
 }
@@ -487,8 +595,16 @@ function shapeOf(crop) {
 // ===========================================================================
 // Card geometry & rendering
 // ===========================================================================
+// true when the print is the in-game card exactly as SnapShot made it
+function keepsOriginal(p) { return !!(p.orig && !p.ed.edit); }
+
 function geom(p) {
   const pw = Math.round(p.crop.w), ph = Math.round(p.crop.h), m = Math.min(pw, ph);
+  if (keepsOriginal(p)) {
+    // the photo sits where it was on the original card; layers line up either way
+    const o = p.orig, side = Math.round(p.crop.x - o.x), top = Math.round(p.crop.y - o.y);
+    return { pw, ph, m, side, top, bottom: Math.round(o.h) - top - ph, W: Math.round(o.w), H: Math.round(o.h), orig: true };
+  }
   const side = Math.round(m * 0.06), top = side, bottom = Math.round(m * 0.24);
   return { pw, ph, m, side, top, bottom, W: pw + side * 2, H: ph + top + bottom };
 }
@@ -512,6 +628,12 @@ function render(ctx, p, scale, preview) {
   const card = (CARDS.find((c) => c.id === ed.card) || CARDS[0]).c;
   ctx.save();
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  ctx.imageSmoothingQuality = "high";
+  if (g.orig) {
+    // Keep original: the in-game card, frame and text untouched
+    const o = p.orig;
+    ctx.drawImage(p.img, o.x, o.y, o.w, o.h, 0, 0, g.W, g.H);
+  } else {
   ctx.fillStyle = card; ctx.fillRect(0, 0, g.W, g.H);
   // gentle paper texture + light falloff
   ctx.fillStyle = paperPattern(ctx); ctx.fillRect(0, 0, g.W, g.H);
@@ -524,6 +646,7 @@ function render(ctx, p, scale, preview) {
   // recessed edge
   ctx.strokeStyle = "rgba(0,0,0,.28)"; ctx.lineWidth = Math.max(1, m * 0.0025);
   ctx.strokeRect(g.side, g.top, g.pw, g.ph);
+  }
   // date stamp
   if (ed.stamp.on && ed.stamp.text.trim()) {
     const fs = m * 0.042;
@@ -533,8 +656,8 @@ function render(ctx, p, scale, preview) {
     ctx.fillText(ed.stamp.text, g.side + g.pw - m * 0.035, g.top + g.ph - m * 0.035);
     ctx.shadowBlur = 0;
   }
-  // caption on the thick bottom edge
-  if (ed.caption.trim()) {
+  // caption on the thick bottom edge (a new card only; the original keeps its own text)
+  if (!g.orig && ed.caption.trim()) {
     let fs = m * 0.09;
     ctx.font = fontStr(ed.capFont, fs);
     const maxW = g.W - g.side * 3;
@@ -656,12 +779,12 @@ function bbox(o, m) {
 // Photos: loading, saving
 // ===========================================================================
 function newEd() {
-  return { card: "cream", caption: "", capFont: "Caveat", capInk: "#1f2340", stamp: { on: false, text: "" }, objs: [] };
+  return { edit: false, card: "cream", caption: "", capFont: "Caveat", capInk: "#1f2340", stamp: { on: false, text: "" }, objs: [] };
 }
 function key(p) { return "snapdr:" + p.name + ":" + p.size; }
 function save(p) {
   clearTimeout(save.t);
-  save.t = setTimeout(() => store(false, key(p), { crop: p.crop, ed: p.ed, det: p.det }), 300);
+  save.t = setTimeout(() => store(false, key(p), { crop: p.crop, orig: p.orig, ed: p.ed, det: p.det }), 300);
 }
 
 // "WoWScrnShot_112626_171602.jpg" -> "26 11 '26"
@@ -684,10 +807,13 @@ async function addFiles(files) {
     catch (e) { banner(`Couldn't open ${f.name}. TGA files need converting to JPG or PNG first.`, 5000); continue; }
     const p = { id: ++uid, name: f.name, size: f.size, img, crop: null, ed: newEd(), det: null, undo: [], redo: [] };
     const saved = store(true, key(p));
-    if (saved && saved.crop) { p.crop = saved.crop; p.ed = Object.assign(newEd(), saved.ed); p.det = saved.det || "saved"; }
-    else {
+    if (saved && saved.crop) {
+      p.crop = saved.crop; p.orig = saved.orig || null; p.det = saved.det || "saved";
+      // edits saved before the "Edit text" switch existed always used a new card
+      p.ed = Object.assign(newEd(), { edit: true }, saved.ed);
+    } else {
       const d = detectCrop(img);
-      if (d) { p.crop = d.crop; p.det = d.marks >= 4 ? "auto" : "partial"; }
+      if (d) { p.crop = d.crop; p.orig = d.crop.orig || null; p.det = d.marks >= 4 ? "auto" : "partial"; }
       else { p.crop = defaultCrop(img); p.det = "none"; }
       p.ed.stamp.text = stampFromName(f.name);
     }
@@ -764,6 +890,20 @@ function syncPanel() {
       if (wasDark && v !== "black" && p.ed.capInk === "#f3ecdc") p.ed.capInk = "#1f2340";
     }); syncPanel();
   });
+  // the main switch: keep SnapShot's own card and text, or build a new card to retype
+  const hasOrig = !!p.orig, keep = keepsOriginal(p);
+  $("textModeRow").style.display = hasOrig ? "" : "none";
+  if (hasOrig) {
+    chips($("textChips"), [{ v: "keep", l: "Keep original" }, { v: "edit", l: "Edit text" }], keep ? "keep" : "edit", (v) => {
+      edit(() => (p.ed.edit = v === "edit")); syncPanel(); drawThumb(p);
+    });
+    $("textModeNote").textContent = keep
+      ? "Your card exactly as SnapShot printed it, text and all. You can still doodle and add stickers on top."
+      : "A fresh card, so you can fix or change the text. Switch back any time.";
+  }
+  $("cardRow").style.display = keep ? "none" : "";
+  $("cropBtn").style.display = keep ? "none" : "";
+  $("capSec").style.display = keep ? "none" : "";
   $("capIn").value = p.ed.caption;
   chips($("capFonts"), FONTS.map((f) => ({ v: f.id, l: f.label })), p.ed.capFont, (v) => { edit(() => (p.ed.capFont = v)); syncPanel(); });
   swatches($("capInks"), [...INKS, "#f3ecdc"], p.ed.capInk, (v) => { edit(() => (p.ed.capInk = v)); syncPanel(); });
@@ -1055,8 +1195,13 @@ function drawMarks(ctx, x0, y0, pw, ph, screenH = ctx.canvas.height) {
     [(sx < 0 ? cx0 - t : cx0 - L) - grow, (sy < 0 ? cy0 - t : cy0) - grow, L + t + grow * 2, t + grow * 2],
     [(sx < 0 ? cx0 - t : cx0) - grow, (sy < 0 ? cy0 - t : cy0 - L) - grow, t + grow * 2, L + t + grow * 2],
   ];
+  // the dark outline stops at the rectangle's edge so it never touches the card/photo
+  const clip = ([x, y, w, h], cx0, cy0, sx, sy, i) => {
+    if (i === 0) return sy < 0 ? [x, y, w, cy0 - y] : [x, cy0, w, y + h - cy0];
+    return sx < 0 ? [x, y, cx0 - x, h] : [cx0, y, x + w - cx0, h];
+  };
   for (const [cx0, cy0, sx, sy] of corners) {
-    ctx.fillStyle = "#141414"; for (const r of arms(cx0, cy0, sx, sy, o)) ctx.fillRect(...r);
+    ctx.fillStyle = "#141414"; arms(cx0, cy0, sx, sy, o).forEach((r, i) => ctx.fillRect(...clip(r, cx0, cy0, sx, sy, i)));
     ctx.fillStyle = "#ff00ff"; for (const r of arms(cx0, cy0, sx, sy, 0)) ctx.fillRect(...r);
   }
 }
@@ -1074,13 +1219,15 @@ async function makeSample() {
   x.fillStyle = "#ffd200"; x.font = "18px sans-serif"; x.fillText("[Guild] Mrgl: say cheese!", 34, 800);
   for (let i = 0; i < 12; i++) { x.fillStyle = "#222"; x.fillRect(620 + i * 56, 1010, 50, 50); x.strokeStyle = "#a88"; x.strokeRect(620 + i * 56, 1010, 50, 50); }
   // the in-game polaroid frame (square), with a typo in the caption
-  const ph = 640, pw = 640, px = (W - pw) / 2, py = 150, side = 38, bottom = 150;
+  // same proportions as SnapShot's card: side border 6%, chin 26% of the photo
+  const ph = 640, pw = 640, px = (W - pw) / 2, py = 150, side = Math.round(pw * 0.06), bottom = Math.round(pw * 0.26);
   x.fillStyle = "rgba(0,0,0,.4)"; x.fillRect(px - side + 8, py - side + 10, pw + side * 2, ph + side + bottom);
   x.fillStyle = "#f3ecdc";
   x.fillRect(px - side, py - side, pw + side * 2, side); x.fillRect(px - side, py + ph, pw + side * 2, bottom);
   x.fillRect(px - side, py, side, ph); x.fillRect(px + pw, py, side, ph);
   x.fillStyle = "#1f2340"; x.font = "52px Caveat"; x.textAlign = "center"; x.fillText("Westfal sunset", W / 2, py + ph + 95);
-  drawMarks(x, px, py, pw, ph);
+  // polaroid shots: the marks sit around the outside of the card
+  drawMarks(x, px - side, py - side, pw + side * 2, ph + side + bottom);
   const blob = await new Promise((r) => c.toBlob(r, "image/jpeg", 0.82));
   blob.name = "WoWScrnShot_112626_171602.jpg";
   addFiles([new File([blob], blob.name, { type: "image/jpeg" })]);
@@ -1098,7 +1245,7 @@ $("cropDone").onclick = exitCrop;
 $("redetBtn").onclick = () => {
   const p = cur(); if (!p) return;
   const d = detectCrop(p.img);
-  if (d) { p.crop = d.crop; p.det = d.marks >= 4 ? "auto" : "partial"; banner("Crop marks found."); }
+  if (d) { p.crop = d.crop; p.orig = d.crop.orig || null; p.det = d.marks >= 4 ? "auto" : "partial"; banner("Crop marks found."); }
   else banner("Still no crop marks on this one. Adjust the crop by hand.");
   save(p); syncPanel(); draw(); drawThumb(p);
 };
