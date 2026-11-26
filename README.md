@@ -8,6 +8,8 @@ stickers or tape → download as PNG or JPEG.
 
 Everything runs in the player's browser. Nothing is uploaded anywhere.
 
+![SnapShot Darkroom](banner.jpg)
+
 **Live page:** https://dirtnasty5.github.io/snapshot-darkroom/
 
 **SnapShot addon:** https://www.curseforge.com/wow/addons/snapshot-forever
@@ -18,6 +20,9 @@ Everything runs in the player's browser. Nothing is uploaded anywhere.
 | --- | --- |
 | `index.html` | The whole darkroom: page, styles and code in one file. |
 | `README.md` | This file. |
+| `logo.jpg` | The SnapShot Darkroom logo (page header, drop area). |
+| `banner.jpg` | Wide artwork shown when the link is shared on Discord, etc. |
+| `icon.png` | Browser tab icon. |
 
 ## Crop mark spec (what the addon draws)
 

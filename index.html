@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SnapShot Darkroom</title>
 <meta name="description" content="Develop your SnapShot screenshots into polaroid prints. Crop, caption, doodle and download. Everything stays on your computer.">
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="apple-touch-icon" href="logo.jpg">
+<meta property="og:title" content="SnapShot Darkroom">
+<meta property="og:description" content="Turn your SnapShot screenshots from World of Warcraft into polaroid prints. Crop, keep or fix the caption, doodle and download.">
+<meta property="og:image" content="https://dirtnasty5.github.io/snapshot-darkroom/banner.jpg">
+<meta property="og:url" content="https://dirtnasty5.github.io/snapshot-darkroom/">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#0b0a09">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Permanent+Marker&family=Special+Elite&family=Share+Tech+Mono&display=swap" rel="stylesheet">
@@ -22,6 +31,8 @@ body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-a
 button,select,input,textarea{font:inherit;color:inherit}
 header{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line)}
 .logo{font-family:"Special Elite",monospace;font-size:22px;letter-spacing:.5px;display:flex;align-items:center;gap:10px}
+.logo .mark{width:40px;height:40px;border-radius:9px;object-fit:cover;box-shadow:0 0 0 1px #3a302a}
+.drop .hero{width:min(240px,60vw);height:auto;border-radius:18px;display:block;margin:0 auto 4px}
 .logo .bulb{width:12px;height:12px;border-radius:50%;background:var(--safe2);box-shadow:0 0 12px 3px rgba(255,106,74,.6)}
 .logo small{font-family:system-ui;font-size:12px;color:var(--muted);margin-left:4px}
 header .sp{flex:1}
@@ -85,7 +96,7 @@ kbd{background:var(--panel2);border:1px solid var(--line);border-radius:4px;padd
 </head>
 <body>
 <header>
-  <div class="logo"><span class="bulb"></span>SnapShot Darkroom<small>develop your polaroids</small></div>
+  <div class="logo"><img class="mark" src="logo.jpg" alt="" onerror="this.replaceWith(Object.assign(document.createElement('span'),{className:'bulb'}))">SnapShot Darkroom<small>develop your polaroids</small></div>
   <div class="sp"></div>
   <button class="btn primary" id="addBtn">Add screenshots</button>
   <button class="btn" id="sampleBtn">Try a sample</button>
@@ -103,10 +114,10 @@ kbd{background:var(--panel2);border:1px solid var(--line);border-radius:4px;padd
   <main class="stage" id="stage">
     <div class="banner" id="banner"></div>
     <div class="drop" id="drop">
-      <div style="font-size:42px">📸</div>
+      <img class="hero" src="logo.jpg" alt="SnapShot Darkroom" onerror="this.remove()">
       <h2>Drop your screenshots here</h2>
       <p>Find them in your <b>World of Warcraft</b> folder, in <b>_classic_…_\Screenshots</b>. Drop in as many as you like, or paste one with <kbd>Ctrl</kbd>+<kbd>V</kbd>.</p>
-      <p>SnapShot's crop marks are found automatically, so each one becomes a fresh polaroid you can write on.</p>
+      <p>SnapShot's crop marks are found automatically. Keep your card exactly as you took it, or switch to <b>Edit text</b> for a fresh one to write on.</p>
       <p class="muted">Your photos never leave your computer.</p>
       <button class="btn primary" id="addBtn2">Choose screenshots</button>
     </div>
