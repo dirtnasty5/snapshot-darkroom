@@ -1,7 +1,9 @@
 # SnapShot Darkroom
 
 A one-page web app that turns SnapShot screenshots into polaroid prints.
+
 **Click here to start cropping!:** https://dirtnasty5.github.io/snapshot-darkroom/
+
 Drop in screenshots → the page finds SnapShot's crop marks → cuts out the photo →
 builds a fresh polaroid card around it → players add a caption, text, marker doodles,
 stickers or tape → download as PNG or JPEG.
